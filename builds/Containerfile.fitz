@@ -2,6 +2,6 @@ FROM registry.redhat.io/ubi9/python-311
 WORKDIR /app
 
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir --upgrade fitz==0.0.1.dev2
+    pip install --no-cache-dir --upgrade PyMuPDF==1.25.3
 
 USER 1001
