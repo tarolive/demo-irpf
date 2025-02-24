@@ -5,7 +5,7 @@ def download_document(
     s3_secret_access_key : str,
     s3_region            : str,
     s3_bucket            : str,
-    s3_document          : str,
+    s3_filename          : str,
     pvc_directory        : str
 ):
     """
@@ -18,16 +18,17 @@ def download_document(
         - s3_secret_access_key (str) : The secret access key for authentication.
         - s3_region            (str) : The region where the s3 bucket is located.
         - s3_bucket            (str) : The s3 bucket where the document will be downloaded.
-        - s3_document          (str) : The s3 document to be downloaded.
+        - s3_filename          (str) : The s3 pdf filename that will be downloaded.
         - pvc_directory        (str) : The PVC directory where the file will be saved.
     """
 
     import boto3
     import os
 
-    os.makedirs(pvc_directory, exist_ok = True)
+    pvc_directory = os.path.join(pvc_directory, os.path.dirname(s3_filename))
+    pvc_filename  = os.path.join(pvc_directory, os.path.basename(s3_filename))
 
-    pvc_document = os.path.join(pvc_directory, os.path.basename(s3_document))
+    os.makedirs(pvc_directory, exist_ok = True)
 
     s3_client = boto3.client(
         service_name          = s3_service_name,
@@ -37,7 +38,7 @@ def download_document(
         region_name           = s3_region
     )
 
-    s3_client.download_file(s3_bucket, s3_document, pvc_document)
+    s3_client.download_file(s3_bucket, s3_filename, pvc_filename)
 
 
 if __name__ == '__main__':
@@ -54,6 +55,6 @@ if __name__ == '__main__':
         s3_secret_access_key = os.getenv('s3_secret_access_key'),
         s3_region            = os.getenv('s3_region'),
         s3_bucket            = os.getenv('s3_bucket'),
-        s3_document          = os.getenv('s3_document'),
+        s3_filename          = os.getenv('s3_filename'),
         pvc_directory        = os.getenv('pvc_directory')
     )
