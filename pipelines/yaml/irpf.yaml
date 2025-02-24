@@ -4,9 +4,9 @@
 # Inputs:
 #    s3_access_key_id: str
 #    s3_bucket: str
-#    s3_directory: str
-#    s3_document: str
 #    s3_endpoint_url: str
+#    s3_filename: str
+#    s3_output_directory: str
 #    s3_region: str
 #    s3_secret_access_key: str
 #    s3_service_name: str
@@ -91,15 +91,23 @@ components:
           parameterType: STRING
         s3_bucket:
           parameterType: STRING
-        s3_document:
-          parameterType: STRING
         s3_endpoint_url:
+          parameterType: STRING
+        s3_filename:
           parameterType: STRING
         s3_region:
           parameterType: STRING
         s3_secret_access_key:
           parameterType: STRING
         s3_service_name:
+          parameterType: STRING
+  comp-remove-watermark:
+    executorLabel: exec-remove-watermark
+    inputDefinitions:
+      parameters:
+        pvc_directory:
+          parameterType: STRING
+        pvc_filename:
           parameterType: STRING
 deploymentSpec:
   executors:
@@ -138,7 +146,7 @@ deploymentSpec:
           \ *\n\ndef download_document(\n    s3_service_name      : str,\n    s3_endpoint_url\
           \      : str,\n    s3_access_key_id     : str,\n    s3_secret_access_key\
           \ : str,\n    s3_region            : str,\n    s3_bucket            : str,\n\
-          \    s3_document          : str,\n    pvc_directory        : str\n):\n \
+          \    s3_filename          : str,\n    pvc_directory        : str\n):\n \
           \   \"\"\"\n    Downloads the document from the s3 bucket.\n\n    Parameters:\n\
           \        - s3_service_name      (str) : The name of the s3 service. It should\
           \ be 's3'.\n        - s3_endpoint_url      (str) : The url of the s3 endpoint.\n\
@@ -146,17 +154,60 @@ deploymentSpec:
           \        - s3_secret_access_key (str) : The secret access key for authentication.\n\
           \        - s3_region            (str) : The region where the s3 bucket is\
           \ located.\n        - s3_bucket            (str) : The s3 bucket where the\
-          \ document will be downloaded.\n        - s3_document          (str) : The\
-          \ s3 document to be downloaded.\n        - pvc_directory        (str) :\
-          \ The PVC directory where the file will be saved.\n    \"\"\"\n\n    import\
-          \ boto3\n    import os\n\n    os.makedirs(pvc_directory, exist_ok = True)\n\
-          \n    pvc_document = os.path.join(pvc_directory, os.path.basename(s3_document))\n\
-          \n    s3_client = boto3.client(\n        service_name          = s3_service_name,\n\
-          \        endpoint_url          = s3_endpoint_url,\n        aws_access_key_id\
-          \     = s3_access_key_id,\n        aws_secret_access_key = s3_secret_access_key,\n\
-          \        region_name           = s3_region\n    )\n\n    s3_client.download_file(s3_bucket,\
-          \ s3_document, pvc_document)\n\n"
-        image: image-registry.openshift-image-registry.svc:5000/demo-irpf/boto3
+          \ document will be downloaded.\n        - s3_filename          (str) : The\
+          \ s3 filename that will be downloaded.\n        - pvc_directory        (str)\
+          \ : The PVC directory where the file will be saved.\n    \"\"\"\n\n    import\
+          \ boto3\n    import os\n\n    pvc_directory = os.path.join(pvc_directory,\
+          \ os.path.dirname(s3_filename))\n    pvc_filename  = os.path.join(pvc_directory,\
+          \ os.path.basename(s3_filename))\n\n    os.makedirs(pvc_directory, exist_ok\
+          \ = True)\n\n    s3_client = boto3.client(\n        service_name       \
+          \   = s3_service_name,\n        endpoint_url          = s3_endpoint_url,\n\
+          \        aws_access_key_id     = s3_access_key_id,\n        aws_secret_access_key\
+          \ = s3_secret_access_key,\n        region_name           = s3_region\n \
+          \   )\n\n    s3_client.download_file(s3_bucket, s3_filename, pvc_filename)\n\
+          \n"
+        image: <image_boto3>
+    exec-remove-watermark:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - remove_watermark
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.11.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef remove_watermark(\n    pvc_directory : str,\n    pvc_filename\
+          \  : str\n):\n    \"\"\"\n    Removes the watermark from the pdf file.\n\
+          \n    Parameters:\n        - pvc_directory (str) : The PVC directory where\
+          \ the file is saved.\n        - pvc_filename  (str) : The PVC filename in\
+          \ which the watermark will be removed.\n    \"\"\"\n\n    import fitz\n\
+          \    import os\n\n    pvc_filename        = os.path.join(pvc_directory,\
+          \ pvc_filename)\n    pvc_filename_output = '{0}_no_watermark.{1}'.format(*os.path.splitext(pvc_filename))\n\
+          \n    document = fitz.open(pvc_filename)\n\n    for page in document:\n\n\
+          \        images = page.get_images(full = True)\n\n        for image in images:\n\
+          \n            page.delete_image(image[0])\n\n        annots = page.annots()\n\
+          \n        if annots:\n\n            for annot in annots:\n\n           \
+          \     if 'Watermark' in annot.info.get('title', ''):\n\n               \
+          \     annot.set_Flags(fitz.ANNOT_HIDDEN)\n\n        page.apply_redactions()\n\
+          \n    document.save(pvc_filename_output)\n\n"
+        image: <image_fitz>
 pipelineInfo:
   description: Convert IRPF .pdf to .xml
   name: irpf
@@ -181,8 +232,7 @@ root:
               runtimeValue:
                 constant: 1Gi
             storage_class_name:
-              runtimeValue:
-                constant: <storage_class_name>
+              componentInputParameter: storage_class_name
         taskInfo:
           name: createpvc
       deletepvc:
@@ -192,7 +242,7 @@ root:
           name: comp-deletepvc
         dependentTasks:
         - createpvc
-        - download-document
+        - remove-watermark
         inputs:
           parameters:
             pvc_name:
@@ -217,10 +267,10 @@ root:
               componentInputParameter: s3_access_key_id
             s3_bucket:
               componentInputParameter: s3_bucket
-            s3_document:
-              componentInputParameter: s3_document
             s3_endpoint_url:
               componentInputParameter: s3_endpoint_url
+            s3_filename:
+              componentInputParameter: s3_filename
             s3_region:
               componentInputParameter: s3_region
             s3_secret_access_key:
@@ -229,17 +279,34 @@ root:
               componentInputParameter: s3_service_name
         taskInfo:
           name: download-document
+      remove-watermark:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-remove-watermark
+        dependentTasks:
+        - createpvc
+        - download-document
+        inputs:
+          parameters:
+            pvc_directory:
+              runtimeValue:
+                constant: /pipeline/irpf
+            pvc_filename:
+              componentInputParameter: s3_filename
+        taskInfo:
+          name: remove-watermark
   inputDefinitions:
     parameters:
       s3_access_key_id:
         parameterType: STRING
       s3_bucket:
         parameterType: STRING
-      s3_directory:
-        parameterType: STRING
-      s3_document:
-        parameterType: STRING
       s3_endpoint_url:
+        parameterType: STRING
+      s3_filename:
+        parameterType: STRING
+      s3_output_directory:
         parameterType: STRING
       s3_region:
         parameterType: STRING
@@ -257,6 +324,12 @@ platforms:
     deploymentSpec:
       executors:
         exec-download-document:
+          pvcMount:
+          - mountPath: /pipeline/irpf
+            taskOutputParameter:
+              outputParameterKey: name
+              producerTask: createpvc
+        exec-remove-watermark:
           pvcMount:
           - mountPath: /pipeline/irpf
             taskOutputParameter:
