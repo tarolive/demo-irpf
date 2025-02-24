@@ -46,10 +46,6 @@ if __name__ == '__main__':
     """
 
     import os
-    import subprocess
-    import sys
-
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'boto3==1.36.26'])
 
     download_document(
         s3_service_name      = os.getenv('s3_service_name'),
