@@ -4,8 +4,9 @@ WORKDIR /app
 USER root
 
 RUN dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm && \
-    dnf -y subscription-manager repos --enable "rhel-*-optional-rpms" --enable "rhel-*-extras-rpms" && \
-    dnf update && \
+    dnf -y upgrade && \
+    subscription-manager repos --enable "rhel-*-optional-rpms" --enable "rhel-*-extras-rpms" && \
+    dnf -y update && \
     dnf -y install tesseract
 
 RUN pip install --no-cache-dir --upgrade pip && \
