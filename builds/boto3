@@ -1,0 +1,7 @@
+FROM registry.redhat.io/ubi9/python-311
+WORKDIR /app
+
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --upgrade boto3==1.36.26
+
+USER 1001
