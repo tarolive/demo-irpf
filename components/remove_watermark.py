@@ -1,19 +1,22 @@
 def remove_watermark(
     pvc_directory : str,
-    pvc_file      : str
+    pvc_filename  : str
 ):
     """
     Removes the watermark from the pdf file.
 
     Parameters:
         - pvc_directory (str) : The PVC directory where the file is saved.
-        - pvc_file      (str) : The PVC pdf file to remove the watermark.
+        - pvc_filename  (str) : The PVC filename in which the watermark will be removed.
     """
 
     import fitz
     import os
 
-    document = fitz.open(os.path.join(pvc_directory, pvc_file))
+    pvc_filename        = os.path.join(pvc_directory, pvc_filename)
+    pvc_filename_output = '{0}_no_watermark.{1}'.format(*os.path.splitext(pvc_filename))
+
+    document = fitz.open(pvc_filename)
 
     for page in document:
 
@@ -35,7 +38,7 @@ def remove_watermark(
 
         page.apply_redactions()
 
-    document.save(pvc_directory)
+    document.save(pvc_filename_output)
 
 
 if __name__ == '__main__':
@@ -47,5 +50,5 @@ if __name__ == '__main__':
 
     remove_watermark(
         pvc_directory = os.getenv('pvc_directory'),
-        pvc_file      = os.getenv('pvc_file')
+        pvc_filename  = os.getenv('pvc_filename')
     )

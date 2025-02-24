@@ -18,7 +18,7 @@ def download_document(
         - s3_secret_access_key (str) : The secret access key for authentication.
         - s3_region            (str) : The region where the s3 bucket is located.
         - s3_bucket            (str) : The s3 bucket where the document will be downloaded.
-        - s3_filename          (str) : The s3 pdf filename that will be downloaded.
+        - s3_filename          (str) : The s3 filename that will be downloaded.
         - pvc_directory        (str) : The PVC directory where the file will be saved.
     """
 
