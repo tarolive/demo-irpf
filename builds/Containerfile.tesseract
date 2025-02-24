@@ -1,12 +1,14 @@
 FROM registry.redhat.io/ubi9/python-311
 WORKDIR /app
 
-RUN sudo dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm && \
-    sudo dnf -y subscription-manager repos --enable "rhel-*-optional-rpms" --enable "rhel-*-extras-rpms" && \
-    sudo dnf update && \
-    sudo dnf -y install tesseract
+USER root
+
+RUN dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm && \
+    dnf -y subscription-manager repos --enable "rhel-*-optional-rpms" --enable "rhel-*-extras-rpms" && \
+    dnf update && \
+    dnf -y install tesseract
 
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir --upgrade pytesseract==0.3.13
+    pip install --no-cache-dir --upgrade pandas==2.2.3 pytesseract==0.3.13
 
 USER 1001
