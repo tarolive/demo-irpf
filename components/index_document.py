@@ -47,8 +47,7 @@ def index_document(
     milvus_connection_args = {
         'uri'      : milvus_uri,
         'user'     : milvus_username,
-        'password' : milvus_password,
-        'timeout'  : 30
+        'password' : milvus_password
     }
 
     milvus = Milvus(
