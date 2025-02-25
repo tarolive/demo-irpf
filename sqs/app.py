@@ -5,11 +5,6 @@ def main():
     import os
     import time
 
-    sqs           = boto3.client('sqs')
-    sqs_queue_url = os.getenv('sqs_queue_url')
-
-    kubeflow_host = os.getenv('kubeflow_host')
-
     pipeline_package_path = 'app.yaml'
     pipeline_arguments    = {
         's3_service_name'      : 's3',
@@ -27,6 +22,14 @@ def main():
         'remove_watermark'     : os.getenv('remove_watermark') == 'True',
         'storage_class_name'   : os.getenv('storage_class_name'),
     }
+
+    sqs = boto3.client(
+        service_name = 'sqs',
+        s3_region    = pipeline_arguments['s3_region']
+    )
+
+    sqs_queue_url = os.getenv('sqs_queue_url')
+    kubeflow_host = os.getenv('kubeflow_host')
 
     while True:
 
