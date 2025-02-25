@@ -7,6 +7,8 @@ RUN apt-get update && \
     apt-get -y install poppler-utils
 
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir --upgrade pandas==2.2.3 pdf2image==1.17.0 pytesseract==0.3.13
+    pip install --no-cache-dir --upgrade pandas==2.2.3 \
+                                         pdf2image==1.17.0 \
+                                         pytesseract==0.3.13
 
 USER 1001

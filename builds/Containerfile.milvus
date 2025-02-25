@@ -2,6 +2,10 @@ FROM registry.access.redhat.com/ubi9/python-311
 WORKDIR /app
 
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir --upgrade langchain==0.3.19 langchain-community==0.3.18 pymilvus==2.5.4 milvus==2.3.5 sentence-transformers==3.4.1
+    pip install --no-cache-dir --upgrade langchain==0.3.19 \
+                                         langchain-community==0.3.18 \
+                                         pymilvus==2.5.4 \
+                                         milvus==2.3.5 \
+                                         sentence-transformers==3.4.1
 
 USER 1001
