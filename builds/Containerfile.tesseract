@@ -3,6 +3,7 @@ WORKDIR /app
 
 RUN apt-get update && \
     apt-get -y install tesseract-ocr && \
+    apt-get -y install tesseract-ocr-por && \
     apt-get -y install poppler-utils
 
 RUN pip install --no-cache-dir --upgrade pip && \
