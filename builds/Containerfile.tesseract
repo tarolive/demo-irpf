@@ -1,16 +1,8 @@
-FROM registry.access.redhat.com/ubi9/python-311
+FROM python:3.11-slim
 WORKDIR /app
 
-USER root
-
-RUN dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm && \
-    dnf -y upgrade && \
-    dnf -v repolist --enabled && \
-    dnf search tesseract && \
-    dnf search --repo epel tesseract && \
-    dnf -y install snapd && \
-    systemctl enable --now snapd.socket && \
-    snap install tesseract
+RUN apt-get update && \
+    apt-get -y install tesseract-ocr
 
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir --upgrade pandas==2.2.3 pytesseract==0.3.13
