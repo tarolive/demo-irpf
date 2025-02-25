@@ -2,6 +2,10 @@
 # Name: irpf
 # Description: Convert IRPF .pdf to .xml
 # Inputs:
+#    milvus_collection: str
+#    milvus_password: str
+#    milvus_uri: str
+#    milvus_username: str
 #    s3_access_key_id: str
 #    s3_bucket: str
 #    s3_endpoint_url: str
@@ -109,6 +113,22 @@ components:
           parameterType: STRING
         pvc_filename:
           parameterType: STRING
+  comp-index-document:
+    executorLabel: exec-index-document
+    inputDefinitions:
+      parameters:
+        milvus_collection:
+          parameterType: STRING
+        milvus_password:
+          parameterType: STRING
+        milvus_uri:
+          parameterType: STRING
+        milvus_username:
+          parameterType: STRING
+        pvc_directory:
+          parameterType: STRING
+        pvc_filename:
+          parameterType: STRING
   comp-remove-watermark:
     executorLabel: exec-remove-watermark
     inputDefinitions:
@@ -202,21 +222,20 @@ deploymentSpec:
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef extract_text(\n    pvc_directory : str,\n    pvc_filename  :\
-          \ str\n):\n    \"\"\"\n    Removes the watermark from the pdf file.\n\n\
-          \    Parameters:\n        - pvc_directory (str) : The PVC directory where\
-          \ the file is saved.\n        - pvc_filename  (str) : The PVC filename in\
-          \ which the watermark will be removed.\n    \"\"\"\n\n    import os\n  \
-          \  import pandas\n    import pdf2image\n    import pytesseract\n\n    pvc_filename\
-          \ = os.path.join(pvc_directory, pvc_filename)\n    pvc_filename = '{0}_no_watermark.{1}'.format(*os.path.splitext(pvc_filename))\n\
-          \n    pages          = pdf2image.convert_from_path(pvc_filename)\n    extracted_text\
-          \ = ''\n\n    for index, image in enumerate(pages):\n\n        print(f'Processing\
-          \ page {index + 1} of the .pdf')\n\n        ocr_config    = r'-c preserve_interword_spaces=1\
-          \ --oem 1 --psm 1'\n        ocr_data      = pytesseract.image_to_data(image,\
+          \ str\n):\n    \"\"\"\n    Extracts the text from the pdf file.\n\n    Parameters:\n\
+          \        - pvc_directory (str) : The PVC directory where the file is saved.\n\
+          \        - pvc_filename  (str) : The PVC filename in which the text will\
+          \ be extracted.\n    \"\"\"\n\n    import os\n    import pandas\n    import\
+          \ pdf2image\n    import pytesseract\n\n    pvc_filename = os.path.join(pvc_directory,\
+          \ pvc_filename)\n    pvc_filename = '{0}_no_watermark{1}'.format(*os.path.splitext(pvc_filename))\n\
+          \n    extracted_text = ''\n\n    for index, image in enumerate(pdf2image.convert_from_path(pvc_filename)):\n\
+          \n        ocr_config           = r'-c preserve_interword_spaces=1 --oem\
+          \ 1 --psm 1'\n        ocr_data             = pytesseract.image_to_data(image,\
           \ lang = 'por', config = ocr_config, output_type = pytesseract.Output.DICT)\n\
-          \        ocr_dataframe = pandas.DataFrame(ocr_data)\n        cleaned_df\
-          \    = ocr_dataframe[(ocr_dataframe.conf != '-1') & (ocr_dataframe.text\
-          \ != ' ') & (ocr_dataframe.text != '')]\n\n        sorted_block_numbers\
-          \ = cleaned_df.groupby('block_num').first().sort_values('top').index.tolist()\n\
+          \        ocr_dataframe        = pandas.DataFrame(ocr_data)\n        cleaned_df\
+          \           = ocr_dataframe[(ocr_dataframe.conf != '-1') & (ocr_dataframe.text\
+          \ != ' ') & (ocr_dataframe.text != '')]\n        sorted_block_numbers =\
+          \ cleaned_df.groupby('block_num').first().sort_values('top').index.tolist()\n\
           \n        for block_num in sorted_block_numbers:\n\n            current_block\
           \  = cleaned_df[cleaned_df['block_num'] == block_num]\n            filtered_text\
           \  = current_block[current_block.text.str.len() > 3]\n            avg_char_width\
@@ -235,8 +254,76 @@ deploymentSpec:
           \                extracted_text += ' ' * spaces_to_add\n\n             \
           \   extracted_text   += line_data['text'] + ' '\n                prev_left_margin\
           \ += len(line_data['text']) + spaces_to_add + 1\n\n            extracted_text\
-          \ += '\\n'\n            print(extracted_text)\n\n"
+          \ += '\\n'\n\n    print(f'extracted_text : {extracted_text}')\n\n    with\
+          \ open(pvc_filename.replace('.pdf', '.txt'), 'w') as file:\n\n        file.write(extracted_text)\n\
+          \n"
         image: image-registry.openshift-image-registry.svc:5000/demo-irpf/tesseract
+    exec-index-document:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - index_document
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.11.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef index_document(\n    milvus_uri        : str,\n    milvus_username\
+          \   : str,\n    milvus_password   : str,\n    milvus_collection : str,\n\
+          \    pvc_directory     : str,\n    pvc_filename      : str\n):\n    \"\"\
+          \"\n    Indexes the document in Milvus.\n\n    Parameters:\n        - milvus_host\
+          \       (str) : The host of the Milvus database.\n        - milvus_port\
+          \       (str) : The port of the Milvus database.\n        - milvus_username\
+          \   (str) : The username of the Milvus for authentication.\n        - milvus_password\
+          \   (str) : The password of the Milvus for authentication.\n        - milvus_collection\
+          \ (str) : The Milvus collection where the document will be indexed.\n  \
+          \      - pvc_directory     (str) : The PVC directory where the file is saved.\n\
+          \        - pvc_filename      (str) : The PVC filename in which the text\
+          \ will be indexed.\n    \"\"\"\n\n    import os\n    from langchain_milvus\
+          \      import Milvus\n    from sentence_transformers import SentenceTransformer\n\
+          \n    pvc_filename_txt = os.path.join(pvc_directory, pvc_filename)\n   \
+          \ pvc_filename_txt = '{0}_no_watermark.txt'.format(*os.path.splitext(pvc_filename_txt))\n\
+          \n    with open(pvc_filename_txt) as file:\n\n        extracted_text = file.read()\n\
+          \n    class EmbeddingFunctionWrapper:\n\n        def __init__(self, model):\n\
+          \            self.model = model\n\n        def embed_query(self, query):\n\
+          \            return self.model.encode(query)\n\n        def embed_documents(self,\
+          \ documents):\n            return self.model.encode(documents)\n\n    embedding_model\
+          \    = SentenceTransformer('all-MiniLM-L6-v2')\n    embedding_function =\
+          \ EmbeddingFunctionWrapper(embedding_model)\n\n    milvus_connection_args\
+          \ = {\n        'uri'      : milvus_uri,\n        'user'     : milvus_username,\n\
+          \        'password' : milvus_password,\n        'timeout'  : 30\n    }\n\
+          \n    milvus = Milvus(\n        connection_args    = milvus_connection_args,\n\
+          \        collection_name    = milvus_collection,\n        metadata_field\
+          \     = 'metadata',\n        text_field         = 'page_content',\n    \
+          \    drop_old           = False,\n        auto_id            = True,\n \
+          \       embedding_function = embedding_function\n    )\n\n    words    \
+          \      = extracted_text.split()\n    parts          = []\n    current_part\
+          \   = []\n    current_length = 0\n    max_length     = 60000\n\n    for\
+          \ word in words:\n\n        if current_length + len(word) + 1 <= max_length:\n\
+          \n            current_part.append(word)\n            current_length += len(word)\
+          \ + 1\n\n        else:\n\n            parts.append(' '.join(current_part))\n\
+          \            current_part   = [word]\n            current_length = len(word)\
+          \ + 1\n\n    if current_part:\n\n        parts.append(' '.join(current_part))\n\
+          \n    for index, part in enumerate(parts):\n\n        metadata = {\n   \
+          \         'source' : pvc_filename,\n            'part'   : index\n     \
+          \   }\n\n        milvus.add_texts([part], metadatas = [metadata])\n\n"
+        image: image-registry.openshift-image-registry.svc:5000/demo-irpf/milvus
     exec-remove-watermark:
       container:
         args:
@@ -269,14 +356,16 @@ deploymentSpec:
           \ the file is saved.\n        - pvc_filename  (str) : The PVC filename in\
           \ which the watermark will be removed.\n    \"\"\"\n\n    import fitz\n\
           \    import os\n\n    pvc_filename        = os.path.join(pvc_directory,\
-          \ pvc_filename)\n    pvc_filename_output = '{0}_no_watermark.{1}'.format(*os.path.splitext(pvc_filename))\n\
-          \n    document = fitz.open(pvc_filename)\n\n    for page in document:\n\n\
-          \        images = page.get_images(full = True)\n\n        for image in images:\n\
-          \n            page.delete_image(image[0])\n\n        annots = page.annots()\n\
-          \n        if annots:\n\n            for annot in annots:\n\n           \
-          \     if 'Watermark' in annot.info.get('title', ''):\n\n               \
-          \     annot.set_Flags(fitz.ANNOT_HIDDEN)\n\n        page.apply_redactions()\n\
-          \n    document.save(pvc_filename_output)\n\n"
+          \ pvc_filename)\n    pvc_filename_output = '{0}_no_watermark{1}'.format(*os.path.splitext(pvc_filename))\n\
+          \n    document = fitz.open(pvc_filename)\n\n    # disable remove watermark\n\
+          \    if True:\n        document.save(pvc_filename_output)\n        return\n\
+          \n    for page in document:\n\n        images = page.get_images(full = True)\n\
+          \n        for image in images:\n\n            page.delete_image(image[0])\n\
+          \n        annots = page.annots()\n\n        if annots:\n\n            for\
+          \ annot in annots:\n\n                if 'Watermark' in annot.info.get('title',\
+          \ ''):\n\n                    annot.set_Flags(fitz.ANNOT_HIDDEN)\n\n   \
+          \     page.apply_redactions()\n\n    document.save(pvc_filename_output)\n\
+          \n"
         image: image-registry.openshift-image-registry.svc:5000/demo-irpf/fitz
 pipelineInfo:
   description: Convert IRPF .pdf to .xml
@@ -312,7 +401,7 @@ root:
           name: comp-deletepvc
         dependentTasks:
         - createpvc
-        - extract-text
+        - index-document
         inputs:
           parameters:
             pvc_name:
@@ -322,8 +411,7 @@ root:
         taskInfo:
           name: deletepvc
       download-document:
-        cachingOptions:
-          enableCache: true
+        cachingOptions: {}
         componentRef:
           name: comp-download-document
         dependentTasks:
@@ -350,8 +438,7 @@ root:
         taskInfo:
           name: download-document
       extract-text:
-        cachingOptions:
-          enableCache: true
+        cachingOptions: {}
         componentRef:
           name: comp-extract-text
         dependentTasks:
@@ -366,9 +453,32 @@ root:
               componentInputParameter: s3_filename
         taskInfo:
           name: extract-text
+      index-document:
+        cachingOptions: {}
+        componentRef:
+          name: comp-index-document
+        dependentTasks:
+        - createpvc
+        - extract-text
+        inputs:
+          parameters:
+            milvus_collection:
+              componentInputParameter: milvus_collection
+            milvus_password:
+              componentInputParameter: milvus_password
+            milvus_uri:
+              componentInputParameter: milvus_uri
+            milvus_username:
+              componentInputParameter: milvus_username
+            pvc_directory:
+              runtimeValue:
+                constant: /pipeline/irpf
+            pvc_filename:
+              componentInputParameter: s3_filename
+        taskInfo:
+          name: index-document
       remove-watermark:
-        cachingOptions:
-          enableCache: true
+        cachingOptions: {}
         componentRef:
           name: comp-remove-watermark
         dependentTasks:
@@ -385,6 +495,14 @@ root:
           name: remove-watermark
   inputDefinitions:
     parameters:
+      milvus_collection:
+        parameterType: STRING
+      milvus_password:
+        parameterType: STRING
+      milvus_uri:
+        parameterType: STRING
+      milvus_username:
+        parameterType: STRING
       s3_access_key_id:
         parameterType: STRING
       s3_bucket:
@@ -417,6 +535,12 @@ platforms:
               outputParameterKey: name
               producerTask: createpvc
         exec-extract-text:
+          pvcMount:
+          - mountPath: /pipeline/irpf
+            taskOutputParameter:
+              outputParameterKey: name
+              producerTask: createpvc
+        exec-index-document:
           pvcMount:
           - mountPath: /pipeline/irpf
             taskOutputParameter:
