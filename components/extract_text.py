@@ -3,7 +3,7 @@ def extract_text(
     pvc_filename  : str
 ):
     """
-    Removes the watermark from the pdf file.
+    Extracts the text from the pdf file.
 
     Parameters:
         - pvc_directory (str) : The PVC directory where the file is saved.
