@@ -20,8 +20,8 @@ def index_document(
     """
 
     import os
-    from langchain_milvus      import Milvus
-    from sentence_transformers import SentenceTransformer
+    from langchain_community.vectorstores.milvus import Milvus
+    from sentence_transformers                   import SentenceTransformer
 
     pvc_filename_txt = os.path.join(pvc_directory, pvc_filename)
     pvc_filename_txt = '{0}_no_watermark.txt'.format(*os.path.splitext(pvc_filename_txt))
