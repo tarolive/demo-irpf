@@ -54,7 +54,7 @@ def index_document(
     }
 
     milvus = Milvus(
-        connections_args   = milvus_connection_args,
+        connection_args    = milvus_connection_args,
         collection_name    = milvus_collection,
         metadata_field     = 'metadata',
         text_field         = 'page_content',
