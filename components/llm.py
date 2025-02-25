@@ -99,6 +99,13 @@ def llm(
     response = llm.predict_messages(messages)
     print(response.content)
 
+    xml_filename = os.path.join(pvc_directory, pvc_filename)
+    xml_filename = xml_filename.replace('.pdf', '.xml')
+
+    with open(xml_filename, 'w') as file:
+
+        file.write(response)
+
 
 if __name__ == '__main__':
     """

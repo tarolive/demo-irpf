@@ -5,8 +5,8 @@ def upload_document(
     s3_secret_access_key : str,
     s3_region            : str,
     s3_bucket            : str,
-    s3_directory         : str,
-    pvc_document         : str
+    pvc_directory        : str,
+    pvc_filename         : str
 ):
     """
     Uploads the document to the s3 bucket.
@@ -18,14 +18,15 @@ def upload_document(
         - s3_secret_access_key (str) : The secret access key for authentication.
         - s3_region            (str) : The region where the s3 bucket is located.
         - s3_bucket            (str) : The s3 bucket where the document will be uploaded.
-        - s3_directory         (str) : The s3 directory where the document will be uploaded.
-        - pvc_document         (str) : The document that will be uploaded.
+        - pvc_directory        (str) :
+        - pvc_filename         (str) :
     """
 
     import boto3
     import os
 
-    s3_document = os.path.join(s3_directory, os.path.basename(pvc_document))
+    pvc_filename_xml = os.path.join(pvc_directory, pvc_filename)
+    pvc_filename_xml = pvc_filename.replace('.pdf', '.xml')
 
     s3_client = boto3.client(
         service_name          = s3_service_name,
@@ -35,7 +36,7 @@ def upload_document(
         region_name           = s3_region
     )
 
-    s3_client.upload_file(pvc_document, s3_bucket, s3_document)
+    s3_client.upload_file(pvc_filename_xml, s3_bucket, pvc_filename.replace('.pdf', '.xml'))
 
 
 if __name__ == '__main__':
@@ -52,6 +53,6 @@ if __name__ == '__main__':
         s3_secret_access_key = os.getenv('s3_secret_access_key'),
         s3_region            = os.getenv('s3_region'),
         s3_bucket            = os.getenv('s3_bucket'),
-        s3_directory         = os.getenv('s3_directory'),
-        pvc_document         = os.getenv('pvc_document')
+        pvc_directory        = os.getenv('pvc_directory'),
+        pvc_filename         = os.getenv('pvc_filename')
     )
