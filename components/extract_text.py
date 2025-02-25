@@ -61,9 +61,9 @@ def extract_text(
 
             extracted_text += '\n'
 
-    print(f'extracted_text: {extracted_text}')
+    print(f'extracted_text : {extracted_text}')
 
-    with open('{0}_no_watermark.txt'.format(*os.path.splitext(pvc_filename))) as file:
+    with open('{0}_no_watermark.txt'.format(*os.path.splitext(pvc_filename)), 'w') as file:
 
         file.write(extracted_text)
 
