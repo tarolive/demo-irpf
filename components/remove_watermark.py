@@ -18,6 +18,11 @@ def remove_watermark(
 
     document = fitz.open(pvc_filename)
 
+    # disable remove watermark
+    if True:
+        document.save(pvc_filename_output)
+        return
+
     for page in document:
 
         images = page.get_images(full = True)
