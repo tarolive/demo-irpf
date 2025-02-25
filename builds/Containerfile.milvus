@@ -1,0 +1,7 @@
+FROM registry.access.redhat.com/ubi9/python-311
+WORKDIR /app
+
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir --upgrade langchain-milvus==0.1.8
+
+USER 1001
