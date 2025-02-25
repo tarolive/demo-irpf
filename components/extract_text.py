@@ -63,6 +63,10 @@ def extract_text(
 
     print(f'extracted_text: {extracted_text}')
 
+    with open('{0}_no_watermark.txt'.format(*os.path.splitext(pvc_filename))) as file:
+
+        file.write(extracted_text)
+
 
 if __name__ == '__main__':
     """
