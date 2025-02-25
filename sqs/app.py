@@ -35,7 +35,7 @@ def main():
 
         messages = sqs.receive_message(
             QueueUrl              = sqs_queue_url,
-            MessageAttrubuteNames = ['All'],
+            AttributeNames        = ['All'],
             MaxNumberOfMessages   = 5,
             WaitTimeSeconds       = 0
         )
