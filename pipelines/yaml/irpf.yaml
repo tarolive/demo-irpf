@@ -101,6 +101,14 @@ components:
           parameterType: STRING
         s3_service_name:
           parameterType: STRING
+  comp-extract-text:
+    executorLabel: exec-extract-text
+    inputDefinitions:
+      parameters:
+        pvc_directory:
+          parameterType: STRING
+        pvc_filename:
+          parameterType: STRING
   comp-remove-watermark:
     executorLabel: exec-remove-watermark
     inputDefinitions:
@@ -166,7 +174,69 @@ deploymentSpec:
           \ = s3_secret_access_key,\n        region_name           = s3_region\n \
           \   )\n\n    s3_client.download_file(s3_bucket, s3_filename, pvc_filename)\n\
           \n"
-        image: <image_boto3>
+        image: image-registry.openshift-image-registry.svc:5000/demo-irpf/boto3
+    exec-extract-text:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - extract_text
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.11.0'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef extract_text(\n    pvc_directory : str,\n    pvc_filename  :\
+          \ str\n):\n    \"\"\"\n    Removes the watermark from the pdf file.\n\n\
+          \    Parameters:\n        - pvc_directory (str) : The PVC directory where\
+          \ the file is saved.\n        - pvc_filename  (str) : The PVC filename in\
+          \ which the watermark will be removed.\n    \"\"\"\n\n    import os\n  \
+          \  import pandas\n    import pdf2image\n    import pytesseract\n\n    pvc_filename\
+          \ = os.path.join(pvc_directory, pvc_filename)\n    pvc_filename = '{0}_no_watermark.{1}'.format(*os.path.splitext(pvc_filename))\n\
+          \n    pages          = pdf2image.convert_from_path(pvc_filename)\n    extracted_text\
+          \ = ''\n\n    for index, image in enumerate(pages):\n\n        print(f'Processing\
+          \ page {index + 1} of the .pdf')\n\n        ocr_config    = r'-c preserve_interword_spaces=1\
+          \ --oem 1 --psm 1'\n        ocr_data      = pytesseract.image_to_data(image,\
+          \ lang = 'por', config = ocr_config, output_type = pytesseract.Output.DICT)\n\
+          \        ocr_dataframe = pandas.DataFrame(ocr_data)\n        cleaned_df\
+          \    = ocr_dataframe[(ocr_dataframe.conf != '-1') & (ocr_dataframe.text\
+          \ != ' ') & (ocr_dataframe.text != '')]\n\n        sorted_block_numbers\
+          \ = cleaned_df.groupby('block_num').first().sort_values('top').index.tolist()\n\
+          \n        for block_num in sorted_block_numbers:\n\n            current_block\
+          \  = cleaned_df[cleaned_df['block_num'] == block_num]\n            filtered_text\
+          \  = current_block[current_block.text.str.len() > 3]\n            avg_char_width\
+          \ = (filtered_text.width / filtered_text.text.str.len()).mean()\n\n    \
+          \        prev_paragraph, prev_line, prev_left_margin = 0, 0, 0\n\n     \
+          \       for idx, line_data in current_block.iterrows():\n\n            \
+          \    if prev_paragraph != line_data['par_num']:\n                    extracted_text\
+          \   += '\\n'\n                    prev_paragraph   = line_data['par_num']\n\
+          \                    prev_line        = line_data['line_num']\n        \
+          \            prev_left_margin = 0\n\n                elif prev_line != line_data['line_num']:\n\
+          \                    extracted_text   += '\\n'\n                    prev_line\
+          \        = line_data['line_num']\n                    prev_left_margin =\
+          \ 0\n\n                spaces_to_add = 0\n\n                if line_data['left']\
+          \ / avg_char_width > prev_left_margin + 1:\n\n                    spaces_to_add\
+          \  = int((line_data['left']) / avg_char_width) - prev_left_margin\n    \
+          \                extracted_text += ' ' * spaces_to_add\n\n             \
+          \   extracted_text   += line_data['text'] + ' '\n                prev_left_margin\
+          \ += len(line_data['text']) + spaces_to_add + 1\n\n            extracted_text\
+          \ += '\\n'\n            print(extracted_text)\n\n"
+        image: image-registry.openshift-image-registry.svc:5000/demo-irpf/tesseract
     exec-remove-watermark:
       container:
         args:
@@ -207,7 +277,7 @@ deploymentSpec:
           \     if 'Watermark' in annot.info.get('title', ''):\n\n               \
           \     annot.set_Flags(fitz.ANNOT_HIDDEN)\n\n        page.apply_redactions()\n\
           \n    document.save(pvc_filename_output)\n\n"
-        image: <image_fitz>
+        image: image-registry.openshift-image-registry.svc:5000/demo-irpf/fitz
 pipelineInfo:
   description: Convert IRPF .pdf to .xml
   name: irpf
@@ -242,7 +312,7 @@ root:
           name: comp-deletepvc
         dependentTasks:
         - createpvc
-        - remove-watermark
+        - extract-text
         inputs:
           parameters:
             pvc_name:
@@ -279,6 +349,23 @@ root:
               componentInputParameter: s3_service_name
         taskInfo:
           name: download-document
+      extract-text:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-extract-text
+        dependentTasks:
+        - createpvc
+        - remove-watermark
+        inputs:
+          parameters:
+            pvc_directory:
+              runtimeValue:
+                constant: /pipeline/irpf
+            pvc_filename:
+              componentInputParameter: s3_filename
+        taskInfo:
+          name: extract-text
       remove-watermark:
         cachingOptions:
           enableCache: true
@@ -324,6 +411,12 @@ platforms:
     deploymentSpec:
       executors:
         exec-download-document:
+          pvcMount:
+          - mountPath: /pipeline/irpf
+            taskOutputParameter:
+              outputParameterKey: name
+              producerTask: createpvc
+        exec-extract-text:
           pvcMount:
           - mountPath: /pipeline/irpf
             taskOutputParameter:
