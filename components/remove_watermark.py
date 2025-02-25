@@ -7,8 +7,9 @@ def remove_watermark(
     Removes the watermark from the pdf file.
 
     Parameters:
-        - pvc_directory (str) : The PVC directory where the file is saved.
-        - pvc_filename  (str) : The PVC filename in which the watermark will be removed.
+        - pvc_directory    (str)  : The PVC directory where the file is saved.
+        - pvc_filename     (str)  : The PVC filename in which the watermark will be removed.
+        - remove_watermark (bool) : Flag that indicates whether this step should be executed or not.
     """
 
     import fitz
