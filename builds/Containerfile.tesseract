@@ -6,6 +6,8 @@ USER root
 RUN dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm && \
     dnf -y upgrade && \
     dnf -v repolist --enabled && \
+    dnf search tesseract && \
+    dnf search --repo epel tesseract && \
     yum -y install snapd && \
     systemctl enable --now snapd.socket && \
     snap install tesseract
