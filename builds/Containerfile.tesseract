@@ -6,7 +6,7 @@ USER root
 RUN dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm && \
     dnf -y update && \
     dnf -v repolist --enabled && \
-    dnf -y install --disablerepo=* --enablerepo=ubi-8-appstream-rpms tesseract
+    dnf -y install --disablerepo=* --enablerepo=ubi-9-appstream-rpms tesseract
 
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir --upgrade pandas==2.2.3 pytesseract==0.3.13
