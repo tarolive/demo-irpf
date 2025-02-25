@@ -7,7 +7,7 @@ def extract_text(
 
     Parameters:
         - pvc_directory (str) : The PVC directory where the file is saved.
-        - pvc_filename  (str) : The PVC filename in which the watermark will be removed.
+        - pvc_filename  (str) : The PVC filename in which the text will be extracted.
     """
 
     import os
