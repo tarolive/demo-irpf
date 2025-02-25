@@ -63,7 +63,7 @@ def extract_text(
 
     print(f'extracted_text : {extracted_text}')
 
-    with open('{0}_no_watermark.txt'.format(*os.path.splitext(pvc_filename)), 'w') as file:
+    with open(pvc_filename.replace('.pdf', '.txt'), 'w') as file:
 
         file.write(extracted_text)
 
