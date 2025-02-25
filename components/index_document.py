@@ -1,6 +1,5 @@
 def index_document(
-    milvus_host       : str,
-    milvus_port       : str,
+    milvus_uri        : str,
     milvus_username   : str,
     milvus_password   : str,
     milvus_collection : str,
@@ -46,8 +45,7 @@ def index_document(
     embedding_function = EmbeddingFunctionWrapper(embedding_model)
 
     milvus_connection_args = {
-        'host'     : milvus_host,
-        'port'     : milvus_port,
+        'uri'      : milvus_uri,
         'user'     : milvus_username,
         'password' : milvus_password,
         'timeout'  : 30
