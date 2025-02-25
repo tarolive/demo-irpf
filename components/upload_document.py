@@ -26,7 +26,7 @@ def upload_document(
     import os
 
     pvc_filename_xml = os.path.join(pvc_directory, pvc_filename)
-    pvc_filename_xml = pvc_filename.replace('.pdf', '.xml')
+    pvc_filename_xml = pvc_filename_xml.replace('.pdf', '.xml')
 
     s3_client = boto3.client(
         service_name          = s3_service_name,

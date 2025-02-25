@@ -96,8 +96,8 @@ def llm(
         """)
         ]
 
-    response = llm.predict_messages(messages)
-    print(response.content)
+    response = llm.predict_messages(messages).content
+    print(response)
 
     xml_filename = os.path.join(pvc_directory, pvc_filename)
     xml_filename = xml_filename.replace('.pdf', '.xml')
