@@ -14,7 +14,7 @@ def remove_watermark(
     import os
 
     pvc_filename        = os.path.join(pvc_directory, pvc_filename)
-    pvc_filename_output = '{0}_no_watermark.{1}'.format(*os.path.splitext(pvc_filename))
+    pvc_filename_output = '{0}_no_watermark{1}'.format(*os.path.splitext(pvc_filename))
 
     document = fitz.open(pvc_filename)
 

@@ -16,18 +16,16 @@ def extract_text(
     import pytesseract
 
     pvc_filename = os.path.join(pvc_directory, pvc_filename)
-    pvc_filename = '{0}_no_watermark.{1}'.format(*os.path.splitext(pvc_filename))
+    pvc_filename = '{0}_no_watermark{1}'.format(*os.path.splitext(pvc_filename))
 
-    pages          = pdf2image.convert_from_path(pvc_filename)
     extracted_text = ''
 
-    for index, image in enumerate(pages):
+    for index, image in enumerate(pdf2image.convert_from_path(pvc_filename)):
 
-        ocr_config    = r'-c preserve_interword_spaces=1 --oem 1 --psm 1'
-        ocr_data      = pytesseract.image_to_data(image, lang = 'por', config = ocr_config, output_type = pytesseract.Output.DICT)
-        ocr_dataframe = pandas.DataFrame(ocr_data)
-        cleaned_df    = ocr_dataframe[(ocr_dataframe.conf != '-1') & (ocr_dataframe.text != ' ') & (ocr_dataframe.text != '')]
-
+        ocr_config           = r'-c preserve_interword_spaces=1 --oem 1 --psm 1'
+        ocr_data             = pytesseract.image_to_data(image, lang = 'por', config = ocr_config, output_type = pytesseract.Output.DICT)
+        ocr_dataframe        = pandas.DataFrame(ocr_data)
+        cleaned_df           = ocr_dataframe[(ocr_dataframe.conf != '-1') & (ocr_dataframe.text != ' ') & (ocr_dataframe.text != '')]
         sorted_block_numbers = cleaned_df.groupby('block_num').first().sort_values('top').index.tolist()
 
         for block_num in sorted_block_numbers:
