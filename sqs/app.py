@@ -25,7 +25,7 @@ def main():
 
     sqs = boto3.client(
         service_name = 'sqs',
-        s3_region    = pipeline_arguments['s3_region']
+        region_name  = pipeline_arguments['s3_region']
     )
 
     sqs_queue_url = os.getenv('sqs_queue_url')
