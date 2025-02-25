@@ -55,7 +55,9 @@ def index_document(
         collection_name    = milvus_collection,
         embedding_function = embedding_function,
         auto_id            = True,
-        drop_old           = False
+        drop_old           = False,
+        text_field         = 'page_content',
+        metadata_field     = 'metadata'
     )
 
     words          = extracted_text.split()

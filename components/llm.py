@@ -49,7 +49,9 @@ def llm(
         collection_name    = milvus_collection,
         embedding_function = embedding_function,
         auto_id            = True,
-        drop_old           = False
+        drop_old           = False,
+        text_field         = 'page_content',
+        metadata_field     = 'metadata'
     )
 
     llm = ChatOpenAI(
@@ -58,7 +60,7 @@ def llm(
         model_name       = model_name,
         top_p            = 0.92,
         temperature      = 0.01,
-        max_tokens       = 512,
+        max_tokens       = 2048,
         presence_penalty = 1.03,
         streaming        = True,
         callbacks        = [StreamingStdOutCallbackHandler()]
