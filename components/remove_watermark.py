@@ -1,6 +1,7 @@
 def remove_watermark(
-    pvc_directory : str,
-    pvc_filename  : str
+    pvc_directory    : str,
+    pvc_filename     : str,
+    remove_watermark : bool
 ):
     """
     Removes the watermark from the pdf file.
@@ -18,8 +19,8 @@ def remove_watermark(
 
     document = fitz.open(pvc_filename)
 
-    # disable remove watermark
-    if True:
+    if not remove_watermark:
+
         document.save(pvc_filename_output)
         return
 
@@ -54,6 +55,7 @@ if __name__ == '__main__':
     import os
 
     remove_watermark(
-        pvc_directory = os.getenv('pvc_directory'),
-        pvc_filename  = os.getenv('pvc_filename')
+        pvc_directory    = os.getenv('pvc_directory'),
+        pvc_filename     = os.getenv('pvc_filename'),
+        remove_watermark = os.getenv('remove_watermark')
     )
